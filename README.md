@@ -2,6 +2,8 @@
 
 REST API wrapping the Swiss Ephemeris via `swisseph-wasm` (WebAssembly). It provides astronomical and astrological calculations including planetary positions, house cusps, aspects, eclipses, fixed stars, rise/set times, coordinate conversions, and complete natal charts.
 
+This project uses the open-source `swisseph-wasm` package: [prolaxu/swisseph-wasm](https://github.com/prolaxu/swisseph-wasm).
+
 ## Features
 - Planetary positions (tropical and sidereal)
 - House cusps and angles (multiple house systems)
