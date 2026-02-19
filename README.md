@@ -41,6 +41,13 @@ Server:
 - Swagger UI: `http://localhost:3000/docs`
 - OpenAPI JSON: `http://localhost:3000/api/v1/openapi.json`
 
+## Public Deployment
+
+The API is available at:
+- Base URL: [https://ephemerisapi.vercel.app](https://ephemerisapi.vercel.app)
+- Swagger UI: [https://ephemerisapi.vercel.app/docs/](https://ephemerisapi.vercel.app/docs/)
+- OpenAPI JSON: [https://ephemerisapi.vercel.app/api/v1/openapi.json](https://ephemerisapi.vercel.app/api/v1/openapi.json)
+
 ## Example Requests
 
 Health:
