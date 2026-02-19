@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.vercel/
+CLAUDE.md
+.env
+.env.*
+*.log
