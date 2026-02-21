@@ -19,6 +19,7 @@ const natalChartSchema = z.object({
   zodiacType: z.enum(['tropical', 'sidereal']).default('tropical'),
   ayanamsa: z.string().optional(),
   aspects: z.array(z.string()).optional(),
+  aspectOrbs: z.record(z.string(), z.number()).optional(),
   planets: z.array(z.string()).optional(),
 });
 
@@ -49,6 +50,7 @@ const natalChartSchema = z.object({
  *               zodiacType: { type: string, enum: [tropical, sidereal], default: tropical }
  *               ayanamsa: { type: string }
  *               aspects: { type: array, items: { type: string } }
+ *               aspectOrbs: { type: object, additionalProperties: { type: number } }
  *               planets: { type: array, items: { type: string }, description: "Planet keys to include (supports fortuna, lilith, quiron aliases)" }
  *     responses:
  *       200:

@@ -82,10 +82,10 @@ export const ASPECTS: Record<string, number> = {
 };
 
 export const DEFAULT_ORBS: Record<string, number> = {
-  conjunction: 8,
-  opposition: 8,
+  conjunction: 10,
+  opposition: 10,
   trine: 8,
-  square: 7,
+  square: 8,
   sextile: 6,
   quincunx: 3,
   semisextile: 2,

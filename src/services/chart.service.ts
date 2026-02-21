@@ -69,22 +69,54 @@ export async function calculateNatalChart(input: NatalChartRequest): Promise<Nat
     },
   };
 
+  const fortuna = wantsFortuna
+    ? calculateFortuna(swe, jd, input.latitude, input.longitude, flags, system)
+    : null;
+  if (fortuna) planets.push(fortuna);
+
+  type AspectBody = { name: string; longitude: number; speed: number; type: 'planet' | 'point' };
+  const aspectBodies: AspectBody[] = [
+    ...aspectPlanets.map((planet) => ({
+      name: planet.name,
+      longitude: planet.longitude,
+      speed: planet.speed,
+      type: 'planet',
+    })),
+    { name: 'Ascendant', longitude: houses.angles.ascendant, speed: 0, type: 'point' },
+    { name: 'MC', longitude: houses.angles.mc, speed: 0, type: 'point' },
+    ...(fortuna
+      ? [{ name: fortuna.name, longitude: fortuna.longitude, speed: fortuna.speed, type: 'point' as const }]
+      : []),
+  ];
+
   const aspectKeys = input.aspects ?? Object.keys(ASPECTS);
+  const orbs = { ...DEFAULT_ORBS, ...(input.aspectOrbs ?? {}) };
   const aspects: AspectData[] = [];
-  for (let i = 0; i < aspectPlanets.length; i++) {
-    for (let j = i + 1; j < aspectPlanets.length; j++) {
-      const p1 = aspectPlanets[i];
-      const p2 = aspectPlanets[j];
-      let angle = Math.abs(p1.longitude - p2.longitude);
+  for (let i = 0; i < aspectBodies.length; i++) {
+    for (let j = i + 1; j < aspectBodies.length; j++) {
+      const p1 = aspectBodies[i];
+      const p2 = aspectBodies[j];
+      if (p1.type === 'point' && p2.type === 'point') continue;
+
+      const rawDiff = Math.abs(p1.longitude - p2.longitude);
+      let angle = rawDiff;
       if (angle > 180) angle = 360 - angle;
 
       for (const aspectKey of aspectKeys) {
         const exactAngle = ASPECTS[aspectKey.toLowerCase()];
         if (exactAngle === undefined) continue;
-        const maxOrb = DEFAULT_ORBS[aspectKey.toLowerCase()] ?? 8;
+        const maxOrb = orbs[aspectKey.toLowerCase()] ?? 8;
         const orb = Math.abs(angle - exactAngle);
         if (orb <= maxOrb) {
           const speedDiff = p1.speed - p2.speed;
+          const applying = exactAngle === 0
+            ? rawDiff > 180
+              ? speedDiff > 0
+              : speedDiff < 0
+            : angle < exactAngle
+              ? speedDiff < 0
+              : speedDiff > 0;
+
           aspects.push({
             planet1: p1.name,
             planet2: p2.name,
@@ -92,15 +124,11 @@ export async function calculateNatalChart(input: NatalChartRequest): Promise<Nat
             exactAngle,
             actualAngle: angle,
             orb: Math.round(orb * 1000) / 1000,
-            applying: angle < exactAngle ? speedDiff < 0 : speedDiff > 0,
+            applying,
           });
         }
       }
     }
-  }
-
-  if (wantsFortuna) {
-    planets.push(calculateFortuna(swe, jd, input.latitude, input.longitude, flags, system));
   }
 
   return {

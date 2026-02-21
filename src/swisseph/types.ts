@@ -49,6 +49,7 @@ export interface NatalChartRequest {
   zodiacType?: 'tropical' | 'sidereal';
   ayanamsa?: string;
   aspects?: string[];
+  aspectOrbs?: Record<string, number>;
   planets?: string[];
 }
 
