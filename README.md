@@ -7,7 +7,7 @@ This project uses the open-source `swisseph-wasm` package: [prolaxu/swisseph-was
 ## Features
 - Planetary positions (tropical and sidereal)
 - House cusps and angles (multiple house systems)
-- Aspect calculations with orbs
+- Aspect calculations with orbs (planets, angles, Fortuna)
 - Fixed star positions and magnitudes
 - Rise, set, and meridian transit times
 - Solar and lunar eclipse queries
@@ -62,6 +62,12 @@ Planet positions:
 curl -s "http://localhost:3000/api/v1/planets/positions?year=2024&month=1&day=1&hour=0&planets=sun,moon"
 ```
 
+Planet positions with Fortuna (requires latitude/longitude):
+
+```bash
+curl -s "http://localhost:3000/api/v1/planets/positions?year=2024&month=1&day=1&hour=0&latitude=-23.55&longitude=-46.63&planets=sun,moon,fortuna"
+```
+
 House cusps:
 
 ```bash
@@ -74,6 +80,14 @@ Natal chart:
 curl -s -X POST "http://localhost:3000/api/v1/chart/natal" \
   -H "Content-Type: application/json" \
   -d '{"year":1990,"month":5,"day":15,"hour":10,"minute":30,"timezone":-3,"latitude":-23.55,"longitude":-46.63,"houseSystem":"P","zodiacType":"tropical"}'
+```
+
+Natal chart with custom aspect orbs:
+
+```bash
+curl -s -X POST "http://localhost:3000/api/v1/chart/natal" \
+  -H "Content-Type: application/json" \
+  -d '{"year":1990,"month":5,"day":15,"hour":10,"minute":30,"timezone":-3,"latitude":-23.55,"longitude":-46.63,"aspectOrbs":{"conjunction":10,"square":8}}'
 ```
 
 ## API Overview
@@ -95,6 +109,19 @@ Base path: `/api/v1`
 - `POST /chart/natal`
 
 For full details and parameters, see Swagger UI at `/docs`.
+
+## Notes
+
+Bodies and aliases:
+- Lilith is supported via `mean_apogee` (default) and `oscu_apogee` (true/oscillating). Aliases: `lilith` -> `mean_apogee`, `true_lilith` -> `oscu_apogee`.
+- Chiron alias: `quiron` -> `chiron`.
+- Fortuna (Part of Fortune) is supported as a calculated point. Aliases: `fortuna`, `fortune`, `part_of_fortune`, `pars_fortuna`.
+
+Aspects:
+- Natal chart aspects include planets, Ascendant (`Ascendant`), MC (`MC`), and Fortuna (when requested).
+- Points do not form aspects with other points (e.g., Ascendant with MC is ignored).
+- Orbs can be customized via `aspectOrbs` in `POST /chart/natal`.
+- Aspects are purely angular (no element restrictions), and orbs use a small tolerance to avoid losing borderline results.
 
 ## Deployment
 

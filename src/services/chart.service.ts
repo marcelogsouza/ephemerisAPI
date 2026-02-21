@@ -3,6 +3,9 @@ import { PLANETS, SIDEREAL_MODES, FLAGS, getZodiacSign, ASPECTS, DEFAULT_ORBS, n
 import type { NatalChartRequest, NatalChartResponse, PlanetPosition, HouseData, AspectData } from '../swisseph/types.js';
 import { calculateFortuna } from './fortuna.service.js';
 
+const ASPECT_EPSILON = 0.01; // tolerance to avoid losing borderline aspects due to rounding
+const normalizeLongitude = (value: number): number => ((value % 360) + 360) % 360;
+
 const DEFAULT_PLANETS = [
   'sun', 'moon', 'mercury', 'venus', 'mars',
   'jupiter', 'saturn', 'uranus', 'neptune', 'pluto',
@@ -32,11 +35,12 @@ export async function calculateNatalChart(input: NatalChartRequest): Promise<Nat
     const id = PLANETS[key];
     if (id === undefined) continue;
     const pos = swe.calc_ut(jd, id, flags);
-    const { sign, degree: signDegree } = getZodiacSign(pos[0]);
+    const longitude = normalizeLongitude(pos[0]);
+    const { sign, degree: signDegree } = getZodiacSign(longitude);
     const planet: PlanetPosition = {
       id,
       name: swe.get_planet_name(id),
-      longitude: pos[0],
+      longitude,
       latitude: pos[1],
       distance: pos[2],
       speed: pos[3],
@@ -74,6 +78,9 @@ export async function calculateNatalChart(input: NatalChartRequest): Promise<Nat
     : null;
   if (fortuna) planets.push(fortuna);
 
+  const ascendantLongitude = normalizeLongitude(houses.angles.ascendant);
+  const mcLongitude = normalizeLongitude(houses.angles.mc);
+
   type AspectBody = { name: string; longitude: number; speed: number; type: 'planet' | 'point' };
   const aspectBodies: AspectBody[] = [
     ...aspectPlanets.map((planet) => ({
@@ -82,8 +89,8 @@ export async function calculateNatalChart(input: NatalChartRequest): Promise<Nat
       speed: planet.speed,
       type: 'planet',
     })),
-    { name: 'Ascendant', longitude: houses.angles.ascendant, speed: 0, type: 'point' },
-    { name: 'MC', longitude: houses.angles.mc, speed: 0, type: 'point' },
+    { name: 'Ascendant', longitude: ascendantLongitude, speed: 0, type: 'point' },
+    { name: 'MC', longitude: mcLongitude, speed: 0, type: 'point' },
     ...(fortuna
       ? [{ name: fortuna.name, longitude: fortuna.longitude, speed: fortuna.speed, type: 'point' as const }]
       : []),
@@ -107,7 +114,7 @@ export async function calculateNatalChart(input: NatalChartRequest): Promise<Nat
         if (exactAngle === undefined) continue;
         const maxOrb = orbs[aspectKey.toLowerCase()] ?? 8;
         const orb = Math.abs(angle - exactAngle);
-        if (orb <= maxOrb) {
+        if (orb <= maxOrb + ASPECT_EPSILON) {
           const speedDiff = p1.speed - p2.speed;
           const applying = exactAngle === 0
             ? rawDiff > 180

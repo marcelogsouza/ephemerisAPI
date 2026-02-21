@@ -2,6 +2,9 @@ import { getSwissEph } from '../swisseph/singleton.js';
 import { PLANETS, ASPECTS, DEFAULT_ORBS, FLAGS } from '../swisseph/constants.js';
 import type { AspectData } from '../swisseph/types.js';
 
+const ASPECT_EPSILON = 0.01; // tolerance to avoid losing borderline aspects due to rounding
+const normalizeLongitude = (value: number): number => ((value % 360) + 360) % 360;
+
 export async function calculateAspects(
   year: number, month: number, day: number, hour: number,
   planetKeys: string[],
@@ -20,7 +23,7 @@ export async function calculateAspects(
     positions.push({
       key: key.toLowerCase(),
       name: swe.get_planet_name(id),
-      longitude: pos[0],
+      longitude: normalizeLongitude(pos[0]),
       speed: pos[3],
     });
   }
@@ -41,7 +44,7 @@ export async function calculateAspects(
         const maxOrb = orbs[aspectKey.toLowerCase()] ?? 8;
         const orb = Math.abs(angle - exactAngle);
 
-        if (orb <= maxOrb) {
+        if (orb <= maxOrb + ASPECT_EPSILON) {
           const speedDiff = p1.speed - p2.speed;
           const applying = exactAngle === 0
             ? Math.abs(p1.longitude - p2.longitude) > 180
