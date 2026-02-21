@@ -22,6 +22,28 @@ export const PLANETS: Record<string, number> = {
   vesta: 20,
 };
 
+export const PLANET_ALIASES: Record<string, string> = {
+  lilith: 'mean_apogee',
+  true_lilith: 'oscu_apogee',
+  quiron: 'chiron',
+};
+
+export const POINT_ALIASES: Record<string, string> = {
+  fortuna: 'fortuna',
+  fortune: 'fortuna',
+  part_of_fortune: 'fortuna',
+  pars_fortuna: 'fortuna',
+};
+
+export const POINT_KEYS = new Set(Object.values(POINT_ALIASES));
+
+export function normalizeBodyKey(key: string): string {
+  const normalized = key.trim().toLowerCase();
+  if (POINT_ALIASES[normalized]) return POINT_ALIASES[normalized];
+  if (PLANET_ALIASES[normalized]) return PLANET_ALIASES[normalized];
+  return normalized;
+}
+
 export const PLANET_NAMES: Record<number, string> = Object.fromEntries(
   Object.entries(PLANETS).map(([name, id]) => [id, name])
 );

@@ -8,6 +8,7 @@ export interface PlanetPosition {
   sign: string;
   signDegree: number;
   retrograde: boolean;
+  type?: 'planet' | 'point';
 }
 
 export interface HouseData {

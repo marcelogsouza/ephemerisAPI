@@ -49,7 +49,7 @@ const natalChartSchema = z.object({
  *               zodiacType: { type: string, enum: [tropical, sidereal], default: tropical }
  *               ayanamsa: { type: string }
  *               aspects: { type: array, items: { type: string } }
- *               planets: { type: array, items: { type: string } }
+ *               planets: { type: array, items: { type: string }, description: "Planet keys to include (supports fortuna, lilith, quiron aliases)" }
  *     responses:
  *       200:
  *         description: Complete natal chart with planets, houses, and aspects

@@ -1,11 +1,12 @@
 import { getSwissEph } from '../swisseph/singleton.js';
-import { PLANETS, SIDEREAL_MODES, FLAGS, getZodiacSign, ASPECTS, DEFAULT_ORBS } from '../swisseph/constants.js';
+import { PLANETS, SIDEREAL_MODES, FLAGS, getZodiacSign, ASPECTS, DEFAULT_ORBS, normalizeBodyKey, POINT_KEYS } from '../swisseph/constants.js';
 import type { NatalChartRequest, NatalChartResponse, PlanetPosition, HouseData, AspectData } from '../swisseph/types.js';
+import { calculateFortuna } from './fortuna.service.js';
 
 const DEFAULT_PLANETS = [
   'sun', 'moon', 'mercury', 'venus', 'mars',
   'jupiter', 'saturn', 'uranus', 'neptune', 'pluto',
-  'true_node', 'mean_apogee', 'chiron',
+  'true_node', 'mean_apogee', 'chiron', 'fortuna',
 ];
 
 export async function calculateNatalChart(input: NatalChartRequest): Promise<NatalChartResponse> {
@@ -21,14 +22,18 @@ export async function calculateNatalChart(input: NatalChartRequest): Promise<Nat
     flags |= FLAGS.SIDEREAL;
   }
 
-  const planetKeys = input.planets ?? DEFAULT_PLANETS;
+  const requestedKeys = (input.planets ?? DEFAULT_PLANETS).map(normalizeBodyKey);
+  const wantsFortuna = requestedKeys.some((key) => POINT_KEYS.has(key));
+  const planetKeys = requestedKeys.filter((key) => !POINT_KEYS.has(key));
+
   const planets: PlanetPosition[] = [];
+  const aspectPlanets: PlanetPosition[] = [];
   for (const key of planetKeys) {
-    const id = PLANETS[key.toLowerCase()];
+    const id = PLANETS[key];
     if (id === undefined) continue;
     const pos = swe.calc_ut(jd, id, flags);
     const { sign, degree: signDegree } = getZodiacSign(pos[0]);
-    planets.push({
+    const planet: PlanetPosition = {
       id,
       name: swe.get_planet_name(id),
       longitude: pos[0],
@@ -38,7 +43,10 @@ export async function calculateNatalChart(input: NatalChartRequest): Promise<Nat
       sign,
       signDegree,
       retrograde: pos[3] < 0,
-    });
+      type: 'planet',
+    };
+    planets.push(planet);
+    aspectPlanets.push(planet);
   }
 
   const system = input.houseSystem ?? 'P';
@@ -63,10 +71,10 @@ export async function calculateNatalChart(input: NatalChartRequest): Promise<Nat
 
   const aspectKeys = input.aspects ?? Object.keys(ASPECTS);
   const aspects: AspectData[] = [];
-  for (let i = 0; i < planets.length; i++) {
-    for (let j = i + 1; j < planets.length; j++) {
-      const p1 = planets[i];
-      const p2 = planets[j];
+  for (let i = 0; i < aspectPlanets.length; i++) {
+    for (let j = i + 1; j < aspectPlanets.length; j++) {
+      const p1 = aspectPlanets[i];
+      const p2 = aspectPlanets[j];
       let angle = Math.abs(p1.longitude - p2.longitude);
       if (angle > 180) angle = 360 - angle;
 
@@ -89,6 +97,10 @@ export async function calculateNatalChart(input: NatalChartRequest): Promise<Nat
         }
       }
     }
+  }
+
+  if (wantsFortuna) {
+    planets.push(calculateFortuna(swe, jd, input.latitude, input.longitude, flags, system));
   }
 
   return {

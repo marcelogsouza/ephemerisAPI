@@ -5,7 +5,7 @@ import * as svc from '../services/planets.service.js';
 
 const router = Router();
 
-const defaultPlanets = 'sun,moon,mercury,venus,mars,jupiter,saturn,uranus,neptune,pluto';
+const defaultPlanets = 'sun,moon,mercury,venus,mars,jupiter,saturn,uranus,neptune,pluto,chiron,mean_apogee';
 
 /**
  * @openapi
@@ -32,7 +32,16 @@ const defaultPlanets = 'sun,moon,mercury,venus,mars,jupiter,saturn,uranus,neptun
  *       - in: query
  *         name: planets
  *         schema: { type: string }
- *         description: Comma-separated planet names (e.g. sun,moon,mars)
+ *         description: Comma-separated planet names (e.g. sun,moon,mars,fortuna). Fortuna requires latitude/longitude.
+ *       - in: query
+ *         name: latitude
+ *         schema: { type: number }
+ *       - in: query
+ *         name: longitude
+ *         schema: { type: number }
+ *       - in: query
+ *         name: houseSystem
+ *         schema: { type: string, default: P }
  *       - in: query
  *         name: flags
  *         schema: { type: integer }
@@ -41,18 +50,41 @@ const defaultPlanets = 'sun,moon,mercury,venus,mars,jupiter,saturn,uranus,neptun
  *       200:
  *         description: Array of planet positions
  */
-router.get('/positions', validateQuery(z.object({
-  year: z.coerce.number().int(),
-  month: z.coerce.number().int().min(1).max(12),
-  day: z.coerce.number().int().min(1).max(31),
-  hour: z.coerce.number().min(0).max(24).default(0),
-  planets: z.string().default(defaultPlanets),
-  flags: z.coerce.number().int().optional(),
-})), async (req, res, next) => {
+router.get('/positions', validateQuery(
+  z.object({
+    year: z.coerce.number().int(),
+    month: z.coerce.number().int().min(1).max(12),
+    day: z.coerce.number().int().min(1).max(31),
+    hour: z.coerce.number().min(0).max(24).default(0),
+    planets: z.string().default(defaultPlanets),
+    latitude: z.coerce.number().min(-90).max(90).optional(),
+    longitude: z.coerce.number().min(-180).max(180).optional(),
+    houseSystem: z.string().length(1).default('P'),
+    flags: z.coerce.number().int().optional(),
+  }).superRefine((data, ctx) => {
+    const planetList = data.planets.split(',').map((s) => s.trim().toLowerCase());
+    const wantsFortuna = planetList.some((p) => ['fortuna', 'fortune', 'part_of_fortune', 'pars_fortuna'].includes(p));
+    if (wantsFortuna && (data.latitude == null || data.longitude == null)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'latitude and longitude are required when requesting fortuna',
+        path: ['latitude'],
+      });
+    }
+  })
+), async (req, res, next) => {
   try {
-    const { year, month, day, hour, planets, flags } = req.query as any;
+    const { year, month, day, hour, planets, latitude, longitude, houseSystem, flags } = req.query as any;
     const planetList = planets.split(',').map((s: string) => s.trim());
-    res.json(await svc.getPlanetPositions(year, month, day, hour, planetList, flags));
+    res.json(await svc.getPlanetPositions(
+      year,
+      month,
+      day,
+      hour,
+      planetList,
+      flags,
+      { latitude, longitude, houseSystem },
+    ));
   } catch (e) { next(e); }
 });
 
